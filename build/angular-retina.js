@@ -57,7 +57,7 @@
             element.prop('src', img_url);
         }
         function set2xVariant(img_url) {
-          if (pattern.test(img_url)) {
+          if (!pattern.test(img_url)) {
             setImgSrc(img_url);
             return;
           }
