@@ -1,4 +1,4 @@
-/*! angular-retina - v0.3.1 - 2015-01-14
+/*! angular-retina - v0.3.1 - 2015-08-11
 * https://github.com/jrief/angular-retina
 * Copyright (c) 2015 Jacob Rief; Licensed MIT */
 // Add support for Retina displays when using element attribute "ng-src".
@@ -32,7 +32,8 @@
   ngRetina.directive('ngSrc', [
     '$window',
     '$http',
-    function ($window, $http) {
+    '$q',
+    function ($window, $http, $q) {
       var msie = parseInt((/msie (\d+)/.exec($window.navigator.userAgent.toLowerCase()) || [])[1], 10);
       var isRetina = function () {
           var mediaQuery = '(-webkit-min-device-pixel-ratio: 1.5), (min--moz-device-pixel-ratio: 1.5), ' + '(-o-min-device-pixel-ratio: 3/2), (min-resolution: 1.5dppx)';
@@ -55,6 +56,18 @@
           attrs.$set('src', img_url);
           if (msie)
             element.prop('src', img_url);
+        }
+        function getMetaSize(img_url) {
+          var deferred = $q.defer();
+          var img = new Image();
+          img.onload = function () {
+            deferred.resolve({
+              width: this.width,
+              height: this.height
+            });
+          };
+          img.src = img_url;
+          return deferred.promise;
         }
         function set2xVariant(img_url) {
           if (!pattern.test(img_url)) {
@@ -79,7 +92,19 @@
           if (!value)
             return;
           if (isRetina && typeof $window.sessionStorage === 'object' && element[0].tagName === 'IMG' && !value.match(data_url_regex)) {
-            set2xVariant(value);
+            if (attrs.autoSize) {
+              getMetaSize(value).then(function (size) {
+                attrs.$set('width', size.width);
+                attrs.$set('height', size.height);
+                if (msie) {
+                  element.prop('width', size.width);
+                  element.prop('height', size.height);
+                }
+                set2xVariant(value);
+              });
+            } else {
+              set2xVariant(value);
+            }
           } else {
             setImgSrc(value);
           }
